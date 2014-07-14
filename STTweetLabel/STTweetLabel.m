@@ -28,6 +28,9 @@
 @property (nonatomic, strong) NSDictionary *attributesHandle;
 @property (nonatomic, strong) NSDictionary *attributesHashtag;
 @property (nonatomic, strong) NSDictionary *attributesLink;
+@property (nonatomic, strong) NSDictionary *attributesFirstWord;
+//First word as a hotword is special, because if it's enabled, it can interfere with other hotword type
+@property (nonatomic) BOOL enableFirstWord;
 
 @property (strong) UITextView *textView;
 
@@ -96,11 +99,13 @@
     _leftToRight = YES;
     _textSelectable = YES;
     _selectionColor = [UIColor colorWithWhite:0.9 alpha:1.0];
+    _enableFirstWord = NO;
     
     _attributesText = @{NSForegroundColorAttributeName: self.textColor, NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue" size:14.0]};
     _attributesHandle = @{NSForegroundColorAttributeName: [UIColor redColor], NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue" size:14.0]};
     _attributesHashtag = @{NSForegroundColorAttributeName: [[UIColor alloc] initWithWhite:170.0/255.0 alpha:1.0], NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue" size:14.0]};
     _attributesLink = @{NSForegroundColorAttributeName: [[UIColor alloc] initWithRed:129.0/255.0 green:171.0/255.0 blue:193.0/255.0 alpha:1.0], NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue" size:14.0]};
+    _attributesFirstWord = @{NSForegroundColorAttributeName: [UIColor blackColor], NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue" size:14.0]};
     
     self.validProtocols = @[@"http", @"https"];
 }
@@ -136,20 +141,30 @@
     
     _rangesOfHotWords = [[NSMutableArray alloc] init];
     
+    BOOL useFirstChar = [tmpText length] > 0 && _enableFirstWord;
     while ([tmpText rangeOfCharacterFromSet:hotCharactersSet].location < tmpText.length) {
-        NSRange range = [tmpText rangeOfCharacterFromSet:hotCharactersSet];
+        NSRange range;
+        if (useFirstChar) {
+            range = NSMakeRange(0, 1);
+            useFirstChar = NO;
+        } else {
+            range = [tmpText rangeOfCharacterFromSet:hotCharactersSet];
+        }
         
         STTweetHotWord hotWord;
-
-        switch ([tmpText characterAtIndex:range.location]) {
-            case '@':
-                hotWord = STTweetHandle;
-                break;
-            case '#':
-                hotWord = STTweetHashtag;
-                break;
-            default:
-                break;
+        if (range.location == 0 && _enableFirstWord) {
+            hotWord = STTweetFirstWord;
+        } else {
+            switch ([tmpText characterAtIndex:range.location]) {
+                case '@':
+                    hotWord = STTweetHandle;
+                    break;
+                case '#':
+                    hotWord = STTweetHashtag;
+                    break;
+                default:
+                    break;
+            }
         }
 
         [tmpText replaceCharactersInRange:range withString:@"%"];
@@ -300,6 +315,10 @@
         case STTweetLink:
             _attributesLink = attributes;
             break;
+        case STTweetFirstWord:
+            _attributesFirstWord = attributes;
+            _enableFirstWord = YES;
+            break;
         default:
             break;
     }
@@ -356,6 +375,9 @@
             break;
         case STTweetLink:
             return _attributesLink;
+            break;
+        case STTweetFirstWord:
+            return _attributesFirstWord;
             break;
         default:
             break;

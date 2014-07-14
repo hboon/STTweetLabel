@@ -9,7 +9,8 @@
 typedef enum {
     STTweetHandle = 0,
     STTweetHashtag,
-    STTweetLink
+    STTweetLink,
+    STTweetFirstWord
 } STTweetHotWord;
 
 @interface STTweetLabel : UILabel
