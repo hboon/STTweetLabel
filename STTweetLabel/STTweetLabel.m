@@ -142,7 +142,7 @@
     _rangesOfHotWords = [[NSMutableArray alloc] init];
     
     BOOL useFirstChar = [tmpText length] > 0 && _enableFirstWord;
-    while ([tmpText rangeOfCharacterFromSet:hotCharactersSet].location < tmpText.length) {
+    while (useFirstChar || [tmpText rangeOfCharacterFromSet:hotCharactersSet].location < tmpText.length) {
         NSRange range;
         if (useFirstChar) {
             range = NSMakeRange(0, 1);
